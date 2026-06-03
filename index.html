@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>超耗类别对比图表(透明带阴影版)</title>
+    <title>超耗类别对比图表(纯透明版)</title>
     <style>
         * {
             box-sizing: border-box;
@@ -12,20 +12,11 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
 
-        /* 演示背景：提供一个中性的浅灰背景方便预览，组件本身已完全透明 */
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f5f7fa; 
-        }
-
-        /* 核心改动：外层容器大小 strict 450x300，背景完全透明 */
+        /* 核心改动：外层容器大小严格限制为 450x300，无任何白底，纯透明 */
         .chart-container {
             width: 450px;
             height: 300px;
-            background: transparent; /* 背景透明 */
+            background: transparent; /* 完全透明 */
             padding: 16px 16px 10px 14px;
             display: flex;
             flex-direction: column;
@@ -33,7 +24,7 @@
             overflow: hidden;
         }
 
-        /* 标题区域与文字阴影 */
+        /* 标题区域与强化版文字阴影 */
         .chart-header {
             text-align: center;
             margin-bottom: 12px;
@@ -44,7 +35,7 @@
             color: #333;
             margin-bottom: 4px;
             letter-spacing: 0.5px;
-            text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.15); /* 文字阴影 */
+            text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.2); /* 文字阴影保证在复杂背景下的清晰度 */
         }
         .legend {
             display: flex;
@@ -52,7 +43,7 @@
             gap: 12px;
             font-size: 10px;
             color: #555;
-            text-shadow: 0px 1px 1px rgba(0, 0, 0, 0.1);
+            text-shadow: 0px 1px 1px rgba(0, 0, 0, 0.15);
         }
         .legend-item {
             display: flex;
@@ -63,7 +54,7 @@
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.15);
+            box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.2);
         }
         .color-blue { background-color: #2f75ec; }
         .color-cyan { background-color: #24d2b5; }
@@ -91,7 +82,7 @@
         .grid-line {
             width: 100%;
             height: 1px;
-            background-color: rgba(0, 0, 0, 0.08); /* 适配透明背景的浅色网格线 */
+            background-color: rgba(0, 0, 0, 0.1); /* 适配任何底色的半透明网格线 */
             position: relative;
         }
         .grid-line::before {
@@ -102,9 +93,9 @@
             width: 32px;
             text-align: right;
             font-size: 9px;
-            color: #666;
+            color: #555;
             font-weight: 500;
-            text-shadow: 0px 1px 1px rgba(0, 0, 0, 0.1); /* Y轴文字阴影 */
+            text-shadow: 0px 1px 1px rgba(0, 0, 0, 0.15); /* Y轴刻度阴影 */
         }
 
         /* 柱状图核心画布 */
@@ -154,13 +145,13 @@
             border-radius: 3px 3px 0 0;
             position: relative;
             overflow: hidden; 
-            box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1); /* 柱子立体微阴影 */
+            box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.15); /* 赋予柱子轻微的体积感阴影 */
         }
 
         .bar.blue { background-color: #2f75ec; }
         .bar.cyan { background-color: #24d2b5; }
 
-        /* 柔和流光飘过效果 */
+        /* 柔和飘过流光 */
         .bar::after {
             content: '';
             position: absolute;
@@ -182,7 +173,7 @@
             animation: light-glow 3.2s infinite linear;
         }
 
-        /* 错开各柱子流光动画节奏 */
+        /* 错开柱子的动画节奏 */
         .bar-group-wrapper:nth-child(2) .bar::after { animation-delay: 0.4s; animation-duration: 2.6s; }
         .bar-group-wrapper:nth-child(3) .bar::after { animation-delay: 0.8s; }
         .bar-group-wrapper:nth-child(4) .bar::after { animation-delay: 0.2s; animation-duration: 3.5s; }
@@ -194,19 +185,19 @@
             100% { transform: translateY(70%) skewY(-25deg); }
         }
 
-        /* 百分比标签带柔和文字阴影，保证在任何背景下都能看清 */
+        /* 百分比数值：带柔和文字阴影，保证在没有白底的情况下也能被看清 */
         .bar-value {
             font-size: 9px;
             font-weight: bold;
             margin-bottom: 2px;
             white-space: nowrap;
             line-height: 1;
-            text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.2); /* 百分比数值阴影 */
+            text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.25); /* 百分比数值背影加深 */
         }
         .color-text-blue { color: #2f75ec; }
         .color-text-cyan { color: #12bda0; }
 
-        /* 微调过矮数字的左右间距，防止重叠 */
+        /* 特殊微调：防止两根很矮的柱子数字贴得太近重叠 */
         .bar-group-wrapper:nth-child(1) .color-text-cyan { transform: translateX(1px); }
         .bar-group-wrapper:nth-child(5) .color-text-cyan { transform: translateX(3px); }
 
@@ -218,7 +209,7 @@
             color: #444;
             font-weight: 500;
             white-space: nowrap;
-            text-shadow: 0px 1px 1px rgba(0, 0, 0, 0.15); /* X轴文字阴影 */
+            text-shadow: 0px 1px 1px rgba(0, 0, 0, 0.2); 
         }
     </style>
 </head>
