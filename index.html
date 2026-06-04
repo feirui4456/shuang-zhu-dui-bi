@@ -198,15 +198,14 @@
             white-space: nowrap;
             text-shadow: 0px 1px 1px rgba(0, 0, 0, 0.15); 
         }
-        
-        /* 加载中状态样式 */
-        .loading {
+
+        .status-text {
             position: absolute;
             font-size: 12px;
-            color: #999;
+            color: #888;
             width: 100%;
             text-align: center;
-            top: 50%;
+            top: 45%;
         }
     </style>
 </head>
@@ -236,27 +235,24 @@
             </div>
 
             <div class="chart-canvas" id="chartCanvas">
-                <div class="loading">数据加载中...</div>
+                <div class="status-text">📊 正在加载最新多维数据...</div>
             </div>
         </div>
     </div>
 
     <script>
-        // 配置你的多维表格 API（这里以自动化工具/后端代理生成的公开只读 API 为例）
-        // ⚠️ 注意：不要直接在前端代码里暴露包含写权限的飞书凭证（App Secret）
-        const API_URL = 'https://你的后端代理或自动化工具的Webhook地址'; 
+        // 本地同级目录下的数据接口（由 GitHub Actions 自动更新生成）
+        const DATA_URL = './data.json'; 
 
-        // 模拟从多维表格获取到的数据格式示例（实际开发中通过 Fetch 获取）
-        async function fetchChartData() {
+        async function initChart() {
             try {
-                const response = await fetch(API_URL);
+                const response = await fetch(DATA_URL);
+                if (!response.ok) throw new Error('未检测到同步数据文件');
                 const json = await response.json();
-                
-                // 假设返回的数据结构是数组：[{ category: '白糖', standard: 0.0097, actual: 0.0101 }, ...]
-                renderChart(json.data); 
+                renderChart(json.data);
             } catch (error) {
-                console.error('获取数据失败，正在使用默认数据演示:', error);
-                // 降级兜底数据（即你原本的数据）
+                console.warn('读取在线数据失败，正在使用默认历史数据兜底渲染:', error);
+                // 兜底默认数据
                 const fallbackData = [
                     { category: '白糖', standard: 0.0097, actual: 0.0101 },
                     { category: '茶叶', standard: 0.0143, actual: 0.0183 },
@@ -270,43 +266,46 @@
             }
         }
 
-        // 根据数据动态渲染图表
         function renderChart(data) {
             const canvas = document.getElementById('chartCanvas');
-            canvas.innerHTML = ''; // 清空加载提示
+            if(!data || data.length === 0) {
+                canvas.innerHTML = '<div class="status-text">⚠️ 数据表为空，请在多维表格中录入数据</div>';
+                return;
+            }
+            canvas.innerHTML = ''; // 清空加载文本
 
-            // 对应 Y 轴的最大值是 6.00% (即 0.06)
+            // 对应 Y 轴的最大值是 6.00%（即 0.06）
             const Y_MAX = 0.06; 
 
             data.forEach((item, index) => {
-                // 计算百分比高度（对应 CSS 中的 height: XX%）
-                const standardHeight = (item.standard / Y_MAX) * 100;
-                const actualHeight = (item.actual / Y_MAX) * 100;
+                // 计算百分比高度
+                const standardHeight = Math.min((item.standard / Y_MAX) * 100, 100);
+                const actualHeight = Math.min((item.actual / Y_MAX) * 100, 100);
 
-                // 格式化为显示文本，例如 0.0097 -> 0.97%
+                // 转换成显示文本 (如 0.0097 -> 0.97%)
                 const standardText = (item.standard * 100).toFixed(2) + '%';
                 const actualText = (item.actual * 100).toFixed(2) + '%';
 
-                // 创建柱状图组件
                 const groupWrapper = document.createElement('div');
                 groupWrapper.className = 'bar-group-wrapper';
                 
-                // 给部分柱子错开流光动画节奏（继承你原本的微调设计）
-                const delayAttr = index === 1 ? 'animation-delay: 0.4s; animation-duration: 2.6s;' :
-                                  index === 2 ? 'animation-delay: 0.8s;' :
-                                  index === 3 ? 'animation-delay: 0.2s; animation-duration: 3.5s;' :
-                                  index === 5 ? 'animation-delay: 0.6s; animation-duration: 3.0s;' :
-                                  index === 6 ? 'animation-delay: 1.1s;' : '';
+                // 继承你原本设计的“错开动画节奏”逻辑
+                let delayStyle = '';
+                if (index === 1) delayStyle = 'animation-delay: 0.4s; animation-duration: 2.6s;';
+                else if (index === 2) delayStyle = 'animation-delay: 0.8s;';
+                else if (index === 3) delayStyle = 'animation-delay: 0.2s; animation-duration: 3.5s;';
+                else if (index === 5) delayStyle = 'animation-delay: 0.6s; animation-duration: 3.0s;';
+                else if (index === 6) delayStyle = 'animation-delay: 1.1s;';
 
                 groupWrapper.innerHTML = `
                     <div class="bar-pair">
                         <div class="bar-item" style="height: ${standardHeight}%;">
                             <span class="bar-value color-text-blue">${standardText}</span>
-                            <div class="bar blue" style="height: 100%; flex:1; ${delayAttr ? `--delay:${delayAttr}` : ''}"></div>
+                            <div class="bar blue" style="height: 100%; flex:1; ${delayStyle}"></div>
                         </div>
                         <div class="bar-item" style="height: ${actualHeight}%;">
                             <span class="bar-value color-text-cyan">${actualText}</span>
-                            <div class="bar cyan" style="height: 100%; flex:1; ${delayAttr ? `--delay:${delayAttr}` : ''}"></div>
+                            <div class="bar cyan" style="height: 100%; flex:1; ${delayStyle}"></div>
                         </div>
                     </div>
                     <div class="x-label">${item.category}</div>
@@ -316,8 +315,8 @@
             });
         }
 
-        // 页面加载时自动执行
-        fetchChartData();
+        // 启动加载
+        initChart();
     </script>
 </body>
 </html>
